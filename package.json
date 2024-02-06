@@ -4,7 +4,7 @@
   "description": "Backend API for Portfolio Website Application",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "test": "npm run test"
   },
   "repository": {
     "type": "git",
