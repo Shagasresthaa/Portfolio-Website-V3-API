@@ -1,28 +1,46 @@
 import * as dotenv from "dotenv";
-import { Client } from "pg";
+import express from "express";
+import bodyParser from "body-parser";
+import sequelize from "./db";
+import authRoutes from "./routes/authRoutes";
+import adminRoutes from "./routes/adminRoutes";
 
 dotenv.config();
 
-const client = new Client({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-  port: parseInt(process.env.DB_PORT || "5432"),
-  ssl: {
-    rejectUnauthorized: false, // For development only; for production, set up proper SSL validation
-  },
-});
+const app = express();
+const PORT = process.env.AP_PORT || 3000;
 
-async function main() {
-  await client.connect();
-  console.log("Connected to PostgreSQL");
+// Set override to true if schema needs to be updated
+const dbAlterOverride = true;
 
-  // Example query
-  const res = await client.query("SELECT NOW()");
-  console.log("Current time in PostgreSQL:", res.rows[0]);
+app.use(bodyParser.json());
 
-  await client.end();
+// Function to initialize the database and start the server
+async function init() {
+  try {
+    // Try to connect to the database
+    await sequelize.authenticate();
+    console.log(
+      "Connection to the database has been established successfully."
+    );
+
+    // Sync all models
+    await sequelize.sync({ alter: dbAlterOverride });
+    console.log("All models were synchronized successfully.");
+
+    // Start the Express server after successful database connection
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+    });
+
+    // Use your routes
+    app.use("/api", authRoutes);
+    app.use("/api/admin", adminRoutes);
+  } catch (error) {
+    console.error("Unable to connect to the database:", error);
+    process.exit(1); // Exit the application if we can't connect to the database
+  }
 }
 
-main().catch(console.error);
+// Initialize the application
+init();
